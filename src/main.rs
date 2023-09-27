@@ -187,6 +187,7 @@ fn jogar(dicionario: &Vec<String>, lookup: &Trie, stats_s: &mut Stats) -> bool {
     let mut vitoria = false;
     let mut tentativa = 6;
 
+    //Remover na versão final
     println!("Palavra: {}", key);
     for _ in 0..6 {
         println!("Inserir palavra:");
