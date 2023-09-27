@@ -1,10 +1,29 @@
 use rand::Rng;
+use serde::Deserialize;
+use serde::Serialize;
 use std::fs;
 use std::io;
 
 struct Trie {
     is_end_of_word: bool,
     children: Vec<Option<Box<Trie>>>,
+}
+
+//0 total,1 won,2 %won,3 best try,4 current streek,5 best streek
+#[derive(Serialize, Deserialize)]
+struct Stats {
+    total: u32,
+    won: u32,
+    won_per: f32,
+    best_try: u32,
+    current_streek: u32,
+    best_streek: u32,
+    try_1: u32,
+    try_2: u32,
+    try_3: u32,
+    try_4: u32,
+    try_5: u32,
+    try_6: u32,
 }
 
 impl Trie {
@@ -56,14 +75,14 @@ impl Trie {
         self.traverse_and_collect(String::new(), &mut words);
         return words;
     }
-
-    fn save_to_file(&self, filename: &str) -> std::io::Result<()> {
-        let words = self.get_all_words();
-        let serialized_words = serde_json::to_string(&words)?;
-        std::fs::write(filename, serialized_words)?;
-        return Ok(());
-    }
-
+    /*
+        fn save_to_file(&self, filename: &str) -> std::io::Result<()> {
+            let words = self.get_all_words();
+            let serialized_words = serde_json::to_string(&words)?;
+            std::fs::write(filename, serialized_words)?;
+            return Ok(());
+        }
+    */
     fn load_from_file(&mut self, filename: &str) -> std::io::Result<()> {
         let data = std::fs::read_to_string(filename)?;
         let words: Vec<String> = serde_json::from_str(&data)?;
@@ -72,7 +91,7 @@ impl Trie {
         }
         return Ok(());
     }
-
+    /*
     fn insert_and_save(&mut self, word: &str, filename: &str) -> std::io::Result<()> {
         if self.search(word) {
             return Ok(());
@@ -82,6 +101,7 @@ impl Trie {
         //println!("saved new word");
         return self.save_to_file(filename);
     }
+    */
 }
 
 fn ler_inteiros() -> usize {
@@ -159,11 +179,7 @@ fn validar_palavra(key: String, word: Vec<char>, alphabet: &mut Vec<char>) -> Ve
     return vec![validos, fora_pos, invalidos, alphabet.to_vec()];
 }
 
-fn jogar(
-    dicionario: &Vec<String>,
-    lookup: &Trie,
-    stats: &mut Vec<(u32, u32, f32, u32, u32, u32, u32, u32, u32, u32, u32, u32)>,
-) -> bool {
+fn jogar(dicionario: &Vec<String>, lookup: &Trie, stats_s: &mut Stats) -> bool {
     let mut validos: Vec<char> = vec![];
     let mut fora_pos: Vec<char> = vec![];
     let mut invalidos: Vec<char> = vec![];
@@ -195,23 +211,25 @@ fn jogar(
         fora_pos.clear();
         if res[0].clone().len() == 5 {
             println!("Acertou na tentativa: {}", 6 - tentativa + 1);
-            if 6 - tentativa + 1 > stats[0].3 {
-                stats[0].3 = 6 - tentativa + 1
+
+            if 6 - tentativa + 1 > stats_s.best_try {
+                stats_s.best_try = 6 - tentativa + 1
             }
 
             let tentativa_index: u32 = 6 - tentativa + 6;
+
             if tentativa_index == 6 {
-                stats[0].6 += 1;
+                stats_s.try_1 += 1;
             } else if tentativa_index == 7 {
-                stats[0].7 += 1;
+                stats_s.try_2 += 1;
             } else if tentativa_index == 8 {
-                stats[0].8 += 1;
+                stats_s.try_3 += 1;
             } else if tentativa_index == 9 {
-                stats[0].9 += 1;
+                stats_s.try_4 += 1;
             } else if tentativa_index == 10 {
-                stats[0].10 += 1;
+                stats_s.try_5 += 1;
             } else if tentativa_index == 11 {
-                stats[0].11 += 1;
+                stats_s.try_6 += 1;
             }
 
             vitoria = true;
@@ -226,21 +244,15 @@ fn jogar(
     return vitoria;
 }
 
-fn save_stats_to_file(
-    stats: &Vec<(u32, u32, f32, u32, u32, u32, u32, u32, u32, u32, u32, u32)>,
-    filename: &str,
-) -> std::io::Result<()> {
+fn save_stats_to_file_s(stats: &Stats, filename: &str) -> std::io::Result<()> {
     let serialized_stats = serde_json::to_string(stats)?;
     fs::write(filename, serialized_stats)?;
     Ok(())
 }
 
-fn import_stats_from_file(
-    filename: &str,
-) -> std::io::Result<Vec<(u32, u32, f32, u32, u32, u32, u32, u32, u32, u32, u32, u32)>> {
+fn import_stats_from_file_s(filename: &str) -> std::io::Result<Stats> {
     let data = fs::read_to_string(filename)?;
-    let stats: Vec<(u32, u32, f32, u32, u32, u32, u32, u32, u32, u32, u32, u32)> =
-        serde_json::from_str(&data)?;
+    let stats: Stats = serde_json::from_str(&data)?;
     Ok(stats)
 }
 
@@ -267,22 +279,20 @@ fn main() {
 
     println!("{}", todas_pt.len());
 
-    //0 total,1 won,2 %won,3 best try,4 current streek,5 best streek
-    let mut stats = import_stats_from_file("stats.txt").unwrap();
+    let mut stats_s = import_stats_from_file_s("stats-s.txt").unwrap();
 
     let mut opt: usize = usize::MAX;
-    let mut streek = stats[0].4;
+    let mut streek = stats_s.current_streek;
     while opt != 0 {
-        stats[0].4 = streek;
-        if stats[0].4 > stats[0].5 {
-            stats[0].5 = streek;
+        stats_s.current_streek = streek;
+        if stats_s.current_streek > stats_s.best_streek {
+            stats_s.best_streek = streek;
         }
-        if stats[0].0 != 0 {
-            stats[0].2 = (stats[0].1 as f32 / stats[0].0 as f32) * 100.0;
+        if stats_s.total != 0 {
+            stats_s.won_per = (stats_s.won as f32 / stats_s.total as f32) * 100.0;
         }
 
-        //println!("{:?}", stats);
-        if let Err(e) = save_stats_to_file(&stats, "stats.txt") {
+        if let Err(e) = save_stats_to_file_s(&stats_s, "stats-s.txt") {
             println!("Erro a guardar as estatisticas: {}", e);
         }
         println!("1. Jogar (EN)");
@@ -294,78 +304,80 @@ fn main() {
         opt = ler_inteiros();
         match opt {
             1 => {
-                if jogar(&todas_en, &loaded_dic_en, &mut stats) {
+                if jogar(&todas_en, &loaded_dic_en, &mut stats_s) {
                     streek += 1;
-                    stats[0].0 += 1;
-                    stats[0].1 += 1;
+                    stats_s.total += 1;
+                    stats_s.won += 1;
                 } else {
                     streek = 0;
-                    stats[0].0 += 1;
+                    stats_s.total += 1;
                 }
             }
             2 => {
-                if jogar(&todas_pt, &loaded_dic_pt, &mut stats) {
+                if jogar(&todas_pt, &loaded_dic_pt, &mut stats_s) {
                     streek += 1;
-                    stats[0].0 += 1;
-                    stats[0].1 += 1;
+                    stats_s.total += 1;
+                    stats_s.won += 1;
                 } else {
                     streek = 0;
-                    stats[0].0 += 1;
+                    stats_s.total += 1;
                 }
             }
             3 => {
                 println!(
                     "Jogos: {} , Vitorias: {} , %Vitorias: {}%",
-                    stats[0].0, stats[0].1, stats[0].2
+                    stats_s.total, stats_s.won, stats_s.won_per
                 );
                 println!(
                     "Melhor Tentativa: {} , Sequência Atual: {} , Melhor Sequência: {}",
-                    stats[0].3, stats[0].4, stats[0].5
+                    stats_s.best_try, stats_s.current_streek, stats_s.best_streek
                 );
                 println!(
                     "#1 {}% ({})",
-                    (stats[0].6 as f32 / stats[0].1 as f32) * 100.0,
-                    stats[0].6
+                    (stats_s.try_1 as f32 / stats_s.won as f32) * 100.0,
+                    stats_s.try_1
                 );
                 println!(
                     "#2 {}% ({})",
-                    (stats[0].7 as f32 / stats[0].1 as f32) * 100.0,
-                    stats[0].7
+                    (stats_s.try_2 as f32 / stats_s.won as f32) * 100.0,
+                    stats_s.try_2
                 );
                 println!(
                     "#3 {}% ({})",
-                    (stats[0].8 as f32 / stats[0].1 as f32) * 100.0,
-                    stats[0].8
+                    (stats_s.try_3 as f32 / stats_s.won as f32) * 100.0,
+                    stats_s.try_3
                 );
                 println!(
                     "#4 {}% ({})",
-                    (stats[0].9 as f32 / stats[0].1 as f32) * 100.0,
-                    stats[0].9
+                    (stats_s.try_4 as f32 / stats_s.won as f32) * 100.0,
+                    stats_s.try_4
                 );
                 println!(
                     "#5 {}% ({})",
-                    (stats[0].10 as f32 / stats[0].1 as f32) * 100.0,
-                    stats[0].10
+                    (stats_s.try_5 as f32 / stats_s.won as f32) * 100.0,
+                    stats_s.try_5
                 );
                 println!(
                     "#6 {}% ({})",
-                    (stats[0].11 as f32 / stats[0].1 as f32) * 100.0,
-                    stats[0].11
+                    (stats_s.try_6 as f32 / stats_s.won as f32) * 100.0,
+                    stats_s.try_6
                 );
             }
             4 => {
-                stats[0].0 = 0;
-                stats[0].1 = 0;
-                stats[0].2 = 0.0;
-                stats[0].3 = 0;
-                stats[0].4 = 0;
-                stats[0].5 = 0;
-                stats[0].6 = 0;
-                stats[0].7 = 0;
-                stats[0].8 = 0;
-                stats[0].9 = 0;
-                stats[0].10 = 0;
-                stats[0].11 = 0;
+                stats_s = Stats {
+                    total: 0,
+                    won: 0,
+                    won_per: 0.0,
+                    best_try: 0,
+                    current_streek: 0,
+                    best_streek: 0,
+                    try_1: 0,
+                    try_2: 0,
+                    try_3: 0,
+                    try_4: 0,
+                    try_5: 0,
+                    try_6: 0,
+                };
                 streek = 0;
             }
             0 => println!(""),

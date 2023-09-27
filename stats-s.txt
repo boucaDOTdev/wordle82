@@ -1,0 +1,1 @@
+{"total":0,"won":0,"won_per":0.0,"best_try":0,"current_streek":0,"best_streek":0,"try_1":0,"try_2":0,"try_3":0,"try_4":0,"try_5":0,"try_6":0}
