@@ -9,7 +9,6 @@ struct Trie {
     children: Vec<Option<Box<Trie>>>,
 }
 
-//0 total,1 won,2 %won,3 best try,4 current streek,5 best streek
 #[derive(Serialize, Deserialize)]
 struct Stats {
     total: u32,
